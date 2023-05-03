@@ -3,10 +3,10 @@ import http from 'http';
 import https from 'https';
 import iconv from 'iconv-lite';
 
-import download from '../download';
-const original = jest.requireActual('../download').default as typeof download;
+import downloader from '../downloader';
+const original = jest.requireActual('../downloader').default as typeof downloader;
 
-jest.mock<Partial<typeof download>>('../download', () => ({
+jest.mock<Partial<typeof downloader>>('../downloader', () => ({
 	download       : jest.fn().mockImplementation(() => downloaded),
 	downloadString : jest.fn().mockImplementation((...args: Parameters<typeof original.downloadString>) => original.downloadString(...args)),
 }));
@@ -68,7 +68,7 @@ afterAll(() => {
 	httpGetSpy.mockRestore();
 });
 
-describe('src/lib/download', () => {
+describe('src/lib/downloader', () => {
 	describe('download', () => {
 		it('should throw if url protocol is not supported', async () => {
 			await expect(() => original.download('ftp://url')).rejects.toEqual('Unknown protocol in url ftp://url, expected one of "http" or "https"');
@@ -145,14 +145,14 @@ describe('src/lib/download', () => {
 		it('should return string decoded with utf8', async () => {
 			downloaded   = iconv.encode('test', 'utf8');
 			const result = await original.downloadString('http://url');
-			expect(download.download).toHaveBeenCalledWith('http://url');
+			expect(downloader.download).toHaveBeenCalledWith('http://url');
 			expect(result).toEqual('test');
 		});
 
 		it('should return string decoded with specified encoding', async () => {
 			downloaded   = iconv.encode('test', 'base64');
 			const result = await original.downloadString('http://url', 'base64');
-			expect(download.download).toHaveBeenCalledWith('http://url');
+			expect(downloader.download).toHaveBeenCalledWith('http://url');
 			expect(result).toEqual('test');
 		});
 	});
@@ -161,16 +161,16 @@ describe('src/lib/download', () => {
 		it('should JSON.parse downloaded string decoded with utf8', async () => {
 			downloaded   = iconv.encode('{"key1": "value", "key2": 5}', 'utf8');
 			const result = await original.downloadJSON('http://url');
-			expect(download.download).toHaveBeenCalledWith('http://url');
-			expect(download.downloadString).toHaveBeenCalledWith('http://url', 'utf8');
+			expect(downloader.download).toHaveBeenCalledWith('http://url');
+			expect(downloader.downloadString).toHaveBeenCalledWith('http://url', 'utf8');
 			expect(result).toEqual({ key1 : 'value', key2 : 5 });
 		});
 
 		it('should JSON.parse downloaded string decoded with specified encoding', async () => {
 			downloaded   = iconv.encode('{"key1": "value", "key2": 5}', 'ucs2');
 			const result = await original.downloadJSON('http://url', 'ucs2');
-			expect(download.download).toHaveBeenCalledWith('http://url');
-			expect(download.downloadString).toHaveBeenCalledWith('http://url', 'ucs2');
+			expect(downloader.download).toHaveBeenCalledWith('http://url');
+			expect(downloader.downloadString).toHaveBeenCalledWith('http://url', 'ucs2');
 			expect(result).toEqual({ key1 : 'value', key2 : 5 });
 		});
 	});

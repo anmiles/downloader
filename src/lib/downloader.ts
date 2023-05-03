@@ -3,7 +3,7 @@ import http from 'http';
 import https from 'https';
 import iconv from 'iconv-lite';
 
-import thisLib from './download';
+import downloader from './downloader';
 
 export { download, downloadString, downloadJSON };
 export default { download, downloadString, downloadJSON };
@@ -62,11 +62,11 @@ async function downloadString(url: string, encoding: Parameters<Buffer['toString
 		throw `Unknown encoding ${encoding}`;
 	}
 
-	const buffer = await thisLib.download(url);
+	const buffer = await downloader.download(url);
 	return iconv.decode(buffer, encoding);
 }
 
 async function downloadJSON(url: string, encoding: Parameters<Buffer['toString']>[0] = 'utf8') {
-	const json = await thisLib.downloadString(url, encoding);
+	const json = await downloader.downloadString(url, encoding);
 	return JSON.parse(json);
 }

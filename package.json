@@ -1,5 +1,5 @@
 {
-  "name": "@anmiles/download",
+  "name": "@anmiles/downloader",
   "version": "1.0.0",
   "description": "Wrapper for downloading data as string, buffer or complex types",
   "keywords": [
@@ -8,8 +8,8 @@
     "request"
   ],
   "author": "Anatoliy Oblaukhov",
-  "homepage": "https://gitlab.com/anmiles/lib/download",
-  "repository": "gitlab:anmiles/lib/download",
+  "homepage": "https://gitlab.com/anmiles/lib/downloader",
+  "repository": "gitlab:anmiles/lib/downloader",
   "license": "MIT",
   "engines": {
     "node": ">=18.14.2"

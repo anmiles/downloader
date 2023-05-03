@@ -1,1 +1,1 @@
-export { download, downloadString, downloadJSON } from './lib/download';
+export { download, downloadString, downloadJSON } from './lib/downloader';
