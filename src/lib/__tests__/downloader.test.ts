@@ -1,6 +1,7 @@
 import fs from 'fs';
 import http from 'http';
 import https from 'https';
+import emitter from 'event-emitter';
 import iconv from 'iconv-lite';
 
 import downloader from '../downloader';
@@ -11,20 +12,10 @@ jest.mock<Partial<typeof downloader>>('../downloader', () => ({
 	downloadString : jest.fn().mockImplementation((...args: Parameters<typeof original.downloadString>) => original.downloadString(...args)),
 }));
 
-const request = {} as http.ClientRequest;
-request.on    = jest.fn().mockImplementation((ev: string, listener: () => void) => {
-	switch (ev) {
-		case 'error':
-			requestError = listener;
-			break;
-	}
-});
-
-const response = {} as http.IncomingMessage;
-
-let data: (data: Uint8Array) => void = () => {};
-let end: () => void                  = () => {};
-let requestError: (e: Error) => void = () => {};
+const request   = emitter() as http.ClientRequest;
+const response  = emitter() as http.IncomingMessage;
+response.pipe   = jest.fn();
+response.resume = jest.fn();
 
 function get(url: string | URL, options: https.RequestOptions, callback?: ((res: http.IncomingMessage) => void) | undefined): http.ClientRequest {
 	if (callback) {
@@ -36,18 +27,6 @@ function get(url: string | URL, options: https.RequestOptions, callback?: ((res:
 
 beforeEach(() => {
 	response.statusCode = 200;
-	response.on         = jest.fn().mockImplementation((ev: string, listener: () => void) => {
-		switch (ev) {
-			case 'data':
-				data = listener;
-				break;
-			case 'end':
-				end = listener;
-				break;
-		}
-	});
-	response.pipe   = jest.fn();
-	response.resume = jest.fn();
 });
 
 let httpGetSpy: jest.SpyInstance;
@@ -76,21 +55,21 @@ describe('src/lib/downloader', () => {
 
 		it('should call http.get if url protocol is http', async () => {
 			const promise = original.download('http://url');
-			end();
+			response.emit('end');
 			await promise;
 			expect(httpGetSpy.mock.calls[0][0]).toEqual('http://url');
 		});
 
 		it('should call https.get if url protocol is https', async () => {
 			const promise = original.download('https://url');
-			end();
+			response.emit('end');
 			await promise;
 			expect(httpsGetSpy.mock.calls[0][0]).toEqual('https://url');
 		});
 
 		it('should pass user-agent in options', async () => {
 			const promise = original.download('http://url');
-			end();
+			response.emit('end');
 			await promise;
 			expect(httpGetSpy.mock.calls[0][1]).toEqual(expect.objectContaining({
 				headers : {
@@ -107,16 +86,16 @@ describe('src/lib/downloader', () => {
 
 		it('should reject if response errored', async () => {
 			const promise = original.download('http://url');
-			requestError(new Error('request error'));
+			request.emit('error', new Error('request error'));
 			await expect(() => promise).rejects.toEqual('Request to http://url failed with error: request error');
 		});
 
 		it('should concat and resolve received data if no file specified', async () => {
 			const promise = original.download('http://url');
-			data(new Uint8Array([ 10, 11, 12 ]));
-			data(new Uint8Array([ 20, 21, 22 ]));
-			data(new Uint8Array([ 30, 31, 32 ]));
-			end();
+			response.emit('data', new Uint8Array([ 10, 11, 12 ]));
+			response.emit('data', new Uint8Array([ 20, 21, 22 ]));
+			response.emit('data', new Uint8Array([ 30, 31, 32 ]));
+			response.emit('end');
 			const result = await promise;
 			expect(result).toEqual(Buffer.from([ 10, 11, 12, 20, 21, 22, 30, 31, 32 ]));
 		});
@@ -125,10 +104,10 @@ describe('src/lib/downloader', () => {
 			const stream               = {} as fs.WriteStream;
 			const createWriteStreamSpy = jest.spyOn(fs, 'createWriteStream').mockReturnValue(stream);
 			const promise              = original.download('http://url', 'file');
-			data(new Uint8Array([ 10, 11, 12 ]));
-			data(new Uint8Array([ 20, 21, 22 ]));
-			data(new Uint8Array([ 30, 31, 32 ]));
-			end();
+			response.emit('data', new Uint8Array([ 10, 11, 12 ]));
+			response.emit('data', new Uint8Array([ 20, 21, 22 ]));
+			response.emit('data', new Uint8Array([ 30, 31, 32 ]));
+			response.emit('end');
 			const result = await promise;
 			expect(createWriteStreamSpy).toHaveBeenCalledWith('file');
 			expect(response.pipe).toHaveBeenCalledWith(stream);
