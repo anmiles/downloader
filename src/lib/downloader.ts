@@ -8,6 +8,8 @@ import downloader from './downloader';
 export { download, downloadString, downloadJSON };
 export default { download, downloadString, downloadJSON };
 
+type BufferEncoding = Parameters<Buffer['toString']>[0];
+
 function download(url: string): Promise<Buffer>;
 function download(url: string, file: string): Promise<void>;
 function download(url: string, file?: string): Promise<Buffer | void> {
@@ -57,7 +59,7 @@ function download(url: string, file?: string): Promise<Buffer | void> {
 	});
 }
 
-async function downloadString(url: string, encoding: Parameters<Buffer['toString']>[0] = 'utf8') {
+async function downloadString(url: string, encoding: BufferEncoding = 'utf8') {
 	if (!Buffer.isEncoding(encoding)) {
 		throw `Unknown encoding ${encoding}`;
 	}
@@ -66,7 +68,7 @@ async function downloadString(url: string, encoding: Parameters<Buffer['toString
 	return iconv.decode(buffer, encoding);
 }
 
-async function downloadJSON(url: string, encoding: Parameters<Buffer['toString']>[0] = 'utf8') {
+async function downloadJSON(url: string, encoding: BufferEncoding = 'utf8') {
 	const json = await downloader.downloadString(url, encoding);
 	return JSON.parse(json);
 }
