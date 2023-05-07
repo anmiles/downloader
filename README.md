@@ -1,4 +1,4 @@
-# @anmiles/lib/downloader
+# @anmiles/downloader
 
 Wrapper for downloading data as string, buffer or complex types
 
@@ -6,14 +6,9 @@ Wrapper for downloading data as string, buffer or complex types
 
 ## Installation
 
-1. Install dependencies
-`npm install`
-1. Build
-`npm run build`
-1. Test everything
-`npm test`
+`npm install @anmiles/downloader`
 
-## Usage examples
+## Usage
 
 ```js
 import { download } from '@anmiles/downloader';
