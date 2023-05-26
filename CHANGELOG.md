@@ -5,6 +5,10 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [2.0.6](../../tags/v2.0.6) - 2023-05-26
+### Changed
+- Re-initialize emitter instance before each test
+
 ## [2.0.5](../../tags/v2.0.5) - 2023-05-08
 ### Changed
 - Use shared eslint config * explicitly specify ignorePatterns

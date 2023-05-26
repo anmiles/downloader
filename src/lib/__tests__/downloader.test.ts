@@ -12,10 +12,8 @@ jest.mock<Partial<typeof downloader>>('../downloader', () => ({
 	downloadString : jest.fn().mockImplementation((...args: Parameters<typeof original.downloadString>) => original.downloadString(...args)),
 }));
 
-const request   = emitter() as http.ClientRequest;
-const response  = emitter() as http.IncomingMessage;
-response.pipe   = jest.fn();
-response.resume = jest.fn();
+let request: http.ClientRequest;
+let response: http.IncomingMessage;
 
 function get(url: string | URL, options: https.RequestOptions, callback?: ((res: http.IncomingMessage) => void) | undefined): http.ClientRequest {
 	if (callback) {
@@ -26,6 +24,12 @@ function get(url: string | URL, options: https.RequestOptions, callback?: ((res:
 }
 
 beforeEach(() => {
+	request  = emitter() as typeof request;
+	response = emitter() as typeof response;
+
+	response.pipe   = jest.fn();
+	response.resume = jest.fn();
+
 	response.statusCode = 200;
 });
 
