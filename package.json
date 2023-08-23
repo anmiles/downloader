@@ -1,6 +1,6 @@
 {
   "name": "@anmiles/downloader",
-  "version": "2.0.6",
+  "version": "2.1.0",
   "description": "Wrapper for downloading data as string, buffer or complex types",
   "keywords": [
     "download",
