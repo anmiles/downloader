@@ -11,8 +11,8 @@ export default { download, downloadString, downloadJSON };
 type BufferEncoding = Parameters<Buffer['toString']>[0];
 
 function download(url: string): Promise<Buffer>;
-function download(url: string, file: string): Promise<void>;
-function download(url: string, file?: string): Promise<Buffer | void> {
+function download(url: string, file: string, options?: { append?: boolean }): Promise<void>;
+function download(url: string, file?: string, options?: { append?: boolean }): Promise<Buffer | void> {
 	return new Promise<Buffer | void>((resolve, reject) => {
 		let protocol : typeof https | typeof http;
 
@@ -24,13 +24,13 @@ function download(url: string, file?: string): Promise<Buffer | void> {
 			throw `Unknown protocol in url ${url}, expected one of "http" or "https"`;
 		}
 
-		const options = {
+		const reqOptions = {
 			headers : {
 				'User-Agent' : 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/112.0.0.0 Safari/537.36',
 			},
 		};
 
-		protocol.get(url, options, function(res) {
+		protocol.get(url, reqOptions, function(res) {
 			if (res.statusCode !== 200) {
 				reject(`Request to ${url} returned with status code: ${res.statusCode}`);
 				res.resume();
@@ -47,7 +47,7 @@ function download(url: string, file?: string): Promise<Buffer | void> {
 					resolve(Buffer.concat(chunks));
 				});
 			} else {
-				res.pipe(fs.createWriteStream(file));
+				res.pipe(fs.createWriteStream(file, { flags : options?.append ? 'a' : 'w' }));
 
 				res.on('end', function() {
 					resolve();

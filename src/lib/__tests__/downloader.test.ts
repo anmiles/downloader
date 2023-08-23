@@ -104,7 +104,7 @@ describe('src/lib/downloader', () => {
 			expect(result).toEqual(Buffer.from([ 10, 11, 12, 20, 21, 22, 30, 31, 32 ]));
 		});
 
-		it('should pipe response stream to file if specified', async () => {
+		it('should pipe response stream to file if specified with write mode', async () => {
 			const stream               = {} as fs.WriteStream;
 			const createWriteStreamSpy = jest.spyOn(fs, 'createWriteStream').mockReturnValue(stream);
 			const promise              = original.download('http://url', 'file');
@@ -113,7 +113,22 @@ describe('src/lib/downloader', () => {
 			response.emit('data', new Uint8Array([ 30, 31, 32 ]));
 			response.emit('end');
 			const result = await promise;
-			expect(createWriteStreamSpy).toHaveBeenCalledWith('file');
+			expect(createWriteStreamSpy).toHaveBeenCalledWith('file', { flags : 'w' });
+			expect(response.pipe).toHaveBeenCalledWith(stream);
+			expect(result).toEqual(undefined);
+			createWriteStreamSpy.mockRestore();
+		});
+
+		it('should pipe response stream to file if specified with append mode', async () => {
+			const stream               = {} as fs.WriteStream;
+			const createWriteStreamSpy = jest.spyOn(fs, 'createWriteStream').mockReturnValue(stream);
+			const promise              = original.download('http://url', 'file', { append : true });
+			response.emit('data', new Uint8Array([ 10, 11, 12 ]));
+			response.emit('data', new Uint8Array([ 20, 21, 22 ]));
+			response.emit('data', new Uint8Array([ 30, 31, 32 ]));
+			response.emit('end');
+			const result = await promise;
+			expect(createWriteStreamSpy).toHaveBeenCalledWith('file', { flags : 'a' });
 			expect(response.pipe).toHaveBeenCalledWith(stream);
 			expect(result).toEqual(undefined);
 			createWriteStreamSpy.mockRestore();

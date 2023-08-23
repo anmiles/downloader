@@ -21,6 +21,11 @@ await download('http://url/file', '/path/to/file');
 ```
 
 ```js
+import { download } from '@anmiles/downloader';
+await download('http://url/file', '/path/to/file', { append: true });
+```
+
+```js
 import { downloadString } from '@anmiles/downloader';
 const str = downloadString('http://url/string');
 ```
