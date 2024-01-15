@@ -15,7 +15,7 @@ jest.mock<Partial<typeof downloader>>('../downloader', () => ({
 let request: http.ClientRequest;
 let response: http.IncomingMessage;
 
-function get(url: string | URL, options: https.RequestOptions, callback?: ((res: http.IncomingMessage) => void) | undefined): http.ClientRequest {
+function get(_url: string | URL, _options: https.RequestOptions, callback?: ((res: http.IncomingMessage) => void) | undefined): http.ClientRequest {
 	if (callback) {
 		callback(response);
 	}
