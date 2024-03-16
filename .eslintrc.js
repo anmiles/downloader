@@ -6,9 +6,4 @@ module.exports = {
 		'./node_modules/@anmiles/eslint-config/src/ts.preset.js',
 		'./node_modules/@anmiles/eslint-config/src/jest.preset.js',
 	],
-
-	ignorePatterns : [
-		'coverage',
-		'dist',
-	],
 };
