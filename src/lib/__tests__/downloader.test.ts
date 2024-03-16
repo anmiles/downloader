@@ -5,23 +5,26 @@ import emitter from 'event-emitter';
 import iconv from 'iconv-lite';
 
 import downloader from '../downloader';
-const original = jest.requireActual('../downloader').default as typeof downloader;
+
+const original = jest.requireActual<{ default : typeof downloader }>('../downloader').default;
 
 jest.mock<Partial<typeof downloader>>('../downloader', () => ({
 	download       : jest.fn().mockImplementation(() => downloaded),
-	downloadString : jest.fn().mockImplementation((...args: Parameters<typeof original.downloadString>) => original.downloadString(...args)),
+	downloadString : jest.fn().mockImplementation(async (...args: Parameters<typeof original.downloadString>) => original.downloadString(...args)),
 }));
 
 let request: http.ClientRequest;
 let response: http.IncomingMessage;
 
-function get(_url: string | URL, _options: https.RequestOptions, callback?: ((res: http.IncomingMessage) => void) | undefined): http.ClientRequest {
+/* eslint-disable promise/prefer-await-to-callbacks -- similar signature to original http.get */
+function get(_url: URL | string, _options: https.RequestOptions, callback?: ((res: http.IncomingMessage) => void) | undefined): http.ClientRequest {
 	if (callback) {
 		callback(response);
 	}
 
 	return request;
 }
+/* eslint-enable promise/prefer-await-to-callbacks */
 
 beforeEach(() => {
 	request  = emitter() as typeof request;
@@ -33,49 +36,36 @@ beforeEach(() => {
 	response.statusCode = 200;
 });
 
-let httpGetSpy: jest.SpyInstance;
-let httpsGetSpy: jest.SpyInstance;
+const httpGetSpy  = jest.spyOn(http, 'get').mockImplementation(get);
+const httpsGetSpy = jest.spyOn(https, 'get').mockImplementation(get);
 let downloaded: Buffer;
-
-beforeAll(() => {
-	httpGetSpy  = jest.spyOn(http, 'get');
-	httpsGetSpy = jest.spyOn(https, 'get');
-});
-
-beforeEach(() => {
-	httpGetSpy.mockImplementation(get);
-	httpsGetSpy.mockImplementation(get);
-});
-
-afterAll(() => {
-	httpGetSpy.mockRestore();
-});
 
 describe('src/lib/downloader', () => {
 	describe('download', () => {
 		it('should throw if url protocol is not supported', async () => {
-			await expect(() => original.download('ftp://url')).rejects.toEqual('Unknown protocol in url ftp://url, expected one of "http" or "https"');
+			const promise: () => Promise<Buffer> = async () => original.download('ftp://url');
+			await expect(promise).rejects.toEqual(new Error('Unknown protocol in url ftp://url, expected one of "http" or "https"'));
 		});
 
 		it('should call http.get if url protocol is http', async () => {
 			const promise = original.download('http://url');
 			response.emit('end');
 			await promise;
-			expect(httpGetSpy.mock.calls[0][0]).toEqual('http://url');
+			expect(httpGetSpy.mock.calls[0]?.[0]).toEqual('http://url');
 		});
 
 		it('should call https.get if url protocol is https', async () => {
 			const promise = original.download('https://url');
 			response.emit('end');
 			await promise;
-			expect(httpsGetSpy.mock.calls[0][0]).toEqual('https://url');
+			expect(httpsGetSpy.mock.calls[0]?.[0]).toEqual('https://url');
 		});
 
 		it('should pass user-agent in options', async () => {
 			const promise = original.download('http://url');
 			response.emit('end');
 			await promise;
-			expect(httpGetSpy.mock.calls[0][1]).toEqual(expect.objectContaining({
+			expect(httpGetSpy.mock.calls[0]?.[1]).toEqual(expect.objectContaining({
 				headers : {
 					'User-Agent' : 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/112.0.0.0 Safari/537.36',
 				},
@@ -83,15 +73,16 @@ describe('src/lib/downloader', () => {
 		});
 
 		it('should reject and resume response if status code is not 200', async () => {
-			response.statusCode = 404;
-			await expect(() => original.download('http://url')).rejects.toEqual('Request to http://url returned with status code: 404');
+			response.statusCode                  = 404;
+			const promise: () => Promise<Buffer> = async () => original.download('http://url');
+			await expect(promise).rejects.toEqual(new Error('Request to http://url returned with status code: 404'));
 			expect(response.resume).toHaveBeenCalled();
 		});
 
 		it('should reject if response errored', async () => {
 			const promise = original.download('http://url');
 			request.emit('error', new Error('request error'));
-			await expect(() => promise).rejects.toEqual('Request to http://url failed with error: request error');
+			await expect(promise).rejects.toEqual(new Error('Request to http://url failed with error: request error'));
 		});
 
 		it('should concat and resolve received data if no file specified', async () => {
@@ -112,10 +103,9 @@ describe('src/lib/downloader', () => {
 			response.emit('data', new Uint8Array([ 20, 21, 22 ]));
 			response.emit('data', new Uint8Array([ 30, 31, 32 ]));
 			response.emit('end');
-			const result = await promise;
+			await promise;
 			expect(createWriteStreamSpy).toHaveBeenCalledWith('file', { flags : 'w' });
 			expect(response.pipe).toHaveBeenCalledWith(stream);
-			expect(result).toEqual(undefined);
 			createWriteStreamSpy.mockRestore();
 		});
 
@@ -127,17 +117,17 @@ describe('src/lib/downloader', () => {
 			response.emit('data', new Uint8Array([ 20, 21, 22 ]));
 			response.emit('data', new Uint8Array([ 30, 31, 32 ]));
 			response.emit('end');
-			const result = await promise;
+			await promise;
 			expect(createWriteStreamSpy).toHaveBeenCalledWith('file', { flags : 'a' });
 			expect(response.pipe).toHaveBeenCalledWith(stream);
-			expect(result).toEqual(undefined);
 			createWriteStreamSpy.mockRestore();
 		});
 	});
 
 	describe('downloadString', () => {
 		it('should throw if unknown encoding specified', async () => {
-			await expect(() => original.downloadString('http://url', 'wrong_encoding' as any)).rejects.toEqual('Unknown encoding wrong_encoding');
+			const promise: () => Promise<string> = async () => original.downloadString('http://url', 'wrong_encoding' as unknown as BufferEncoding);
+			await expect(promise).rejects.toEqual(new Error('Unknown encoding wrong_encoding'));
 		});
 
 		it('should return string decoded with utf8', async () => {

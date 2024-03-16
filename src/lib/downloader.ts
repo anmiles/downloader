@@ -5,23 +5,20 @@ import iconv from 'iconv-lite';
 
 import downloader from './downloader';
 
-export { download, downloadString, downloadJSON };
-export default { download, downloadString, downloadJSON };
-
 type BufferEncoding = Parameters<Buffer['toString']>[0];
 
 function download(url: string): Promise<Buffer>;
-function download(url: string, file: string, options?: { append?: boolean }): Promise<void>;
-function download(url: string, file?: string, options?: { append?: boolean }): Promise<Buffer | void> {
-	return new Promise<Buffer | void>((resolve, reject) => {
-		let protocol : typeof https | typeof http;
+function download(url: string, file: string, options?: { append? : boolean }): Promise<undefined>;
+async function download(url: string, file?: string, options?: { append? : boolean }): Promise<Buffer | undefined> {
+	return new Promise<Buffer | undefined>((resolve, reject) => {
+		let protocol : typeof http | typeof https;
 
 		if (url.startsWith('https://')) {
 			protocol = https;
 		} else if (url.startsWith('http://')) {
 			protocol = http;
 		} else {
-			throw `Unknown protocol in url ${url}, expected one of "http" or "https"`;
+			throw new Error(`Unknown protocol in url ${url}, expected one of "http" or "https"`);
 		}
 
 		const reqOptions = {
@@ -32,14 +29,14 @@ function download(url: string, file?: string, options?: { append?: boolean }): P
 
 		protocol.get(url, reqOptions, function(res) {
 			if (res.statusCode !== 200) {
-				reject(`Request to ${url} returned with status code: ${res.statusCode}`);
+				reject(new Error(`Request to ${url} returned with status code: ${res.statusCode}`));
 				res.resume();
 			}
 
 			const chunks: Uint8Array[] = [];
 
 			if (typeof file === 'undefined') {
-				res.on('data', function(chunk) {
+				res.on('data', function(chunk: Uint8Array) {
 					chunks.push(chunk);
 				});
 
@@ -50,25 +47,28 @@ function download(url: string, file?: string, options?: { append?: boolean }): P
 				res.pipe(fs.createWriteStream(file, { flags : options?.append ? 'a' : 'w' }));
 
 				res.on('end', function() {
-					resolve();
+					resolve(undefined);
 				});
 			}
 		}).on('error', (e) => {
-			reject(`Request to ${url} failed with error: ${e.message}`);
+			reject(new Error(`Request to ${url} failed with error: ${e.message}`));
 		});
 	});
 }
 
-async function downloadString(url: string, encoding: BufferEncoding = 'utf8') {
+async function downloadString(url: string, encoding: BufferEncoding = 'utf8'): Promise<string> {
 	if (!Buffer.isEncoding(encoding)) {
-		throw `Unknown encoding ${encoding}`;
+		throw new Error(`Unknown encoding ${String(encoding)}`);
 	}
 
 	const buffer = await downloader.download(url);
 	return iconv.decode(buffer, encoding);
 }
 
-async function downloadJSON(url: string, encoding: BufferEncoding = 'utf8') {
+async function downloadJSON(url: string, encoding: BufferEncoding = 'utf8'): Promise<unknown> {
 	const json = await downloader.downloadString(url, encoding);
-	return JSON.parse(json);
+	return JSON.parse(json) as unknown;
 }
+
+export { download, downloadString, downloadJSON };
+export default { download, downloadString, downloadJSON };
