@@ -1,7 +1,7 @@
 import fs from 'fs';
 import http from 'http';
 import https from 'https';
-import emitter from 'event-emitter';
+import EventEmitter from 'events';
 import iconv from 'iconv-lite';
 
 import downloader from '../downloader';
@@ -27,8 +27,8 @@ function get(_url: URL | string, _options: https.RequestOptions, callback?: ((re
 /* eslint-enable promise/prefer-await-to-callbacks */
 
 beforeEach(() => {
-	request  = emitter() as typeof request;
-	response = emitter() as typeof response;
+	request  = new EventEmitter() as typeof request;
+	response = new EventEmitter() as typeof response;
 
 	response.pipe   = jest.fn();
 	response.resume = jest.fn();
