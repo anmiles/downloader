@@ -1,17 +1,18 @@
 import fs from 'fs';
 import http from 'http';
 import https from 'https';
+
 import iconv from 'iconv-lite';
 
-import downloader from './downloader';
+import * as downloader from './downloader';
 
-type BufferEncoding = Parameters<Buffer['toString']>[0];
+export type BufferEncoding = Parameters<Buffer['toString']>[0];
 
-function download(url: string): Promise<Buffer>;
-function download(url: string, file: string, options?: { append? : boolean }): Promise<undefined>;
-async function download(url: string, file?: string, options?: { append? : boolean }): Promise<Buffer | undefined> {
+export function download(url: string): Promise<Buffer>;
+export function download(url: string, file: string, options?: { append?: boolean }): Promise<undefined>;
+export async function download(url: string, file?: string, options?: { append?: boolean }): Promise<Buffer | undefined> {
 	return new Promise<Buffer | undefined>((resolve, reject) => {
-		let protocol : typeof http | typeof https;
+		let protocol: typeof http | typeof https;
 
 		if (url.startsWith('https://')) {
 			protocol = https;
@@ -22,8 +23,8 @@ async function download(url: string, file?: string, options?: { append? : boolea
 		}
 
 		const reqOptions = {
-			headers : {
-				'User-Agent' : 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/112.0.0.0 Safari/537.36',
+			headers: {
+				'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/112.0.0.0 Safari/537.36',
 			},
 		};
 
@@ -44,7 +45,7 @@ async function download(url: string, file?: string, options?: { append? : boolea
 					resolve(Buffer.concat(chunks));
 				});
 			} else {
-				res.pipe(fs.createWriteStream(file, { flags : options?.append ? 'a' : 'w' }));
+				res.pipe(fs.createWriteStream(file, { flags: options?.append ? 'a' : 'w' }));
 
 				res.on('end', function() {
 					resolve(undefined);
@@ -56,19 +57,18 @@ async function download(url: string, file?: string, options?: { append? : boolea
 	});
 }
 
-async function downloadString(url: string, encoding: BufferEncoding = 'utf8'): Promise<string> {
+export async function downloadString(url: string, encoding: BufferEncoding = 'utf8'): Promise<string> {
 	if (!Buffer.isEncoding(encoding)) {
 		throw new Error(`Unknown encoding ${String(encoding)}`);
 	}
 
-	const buffer = await downloader.download(url);
-	return iconv.decode(buffer, encoding);
+	const bufferPromise = downloader.download(url);
+	// eslint-disable-next-line promise/prefer-await-to-then
+	return bufferPromise.then((buffer) => iconv.decode(buffer, encoding));
 }
 
-async function downloadJSON(url: string, encoding: BufferEncoding = 'utf8'): Promise<unknown> {
-	const json = await downloader.downloadString(url, encoding);
-	return JSON.parse(json) as unknown;
+export async function downloadJSON(url: string, encoding: BufferEncoding = 'utf8'): Promise<unknown> {
+	const jsonPromise = downloader.downloadString(url, encoding);
+	// eslint-disable-next-line promise/prefer-await-to-then
+	return jsonPromise.then((json) => JSON.parse(json) as unknown);
 }
-
-export { download, downloadString, downloadJSON };
-export default { download, downloadString, downloadJSON };
