@@ -32,7 +32,7 @@
 		"iconv-lite": "^0.6.3"
 	},
 	"devDependencies": {
-		"@anmiles/eslint-config": "^9.0.3",
+		"@anmiles/eslint-config": "^9.0.4",
 		"@anmiles/tsconfig": "^4.0.0",
 		"@eslint/compat": "^1.3.1",
 		"@eslint/css": "^0.10.0",
